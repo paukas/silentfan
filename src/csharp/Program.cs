@@ -39,7 +39,7 @@ namespace gputempmon
                     stopwatch.Stop();
                     Console.WriteLine($"Elapsed: {stopwatch.ElapsedMilliseconds}");
 
-                    Task.Delay(400).Wait();
+                    Task.Delay(350).Wait();
                 }
             }
             finally

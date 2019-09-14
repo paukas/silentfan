@@ -1,9 +1,9 @@
-#define PIN_CTL A2
+#define PIN_CTL PD2
 #define SERIAL_TIMEOUT 500
 #define MAX_NOSIGNALCNT 5
 
-#define TEMP_LOW 50
-#define TEMP_HIGH 55
+#define TEMP_LOW 43
+#define TEMP_HIGH 45
 #define TEMP_MINPOSSIBLE 25
 #define TEMP_MAXPOSSIBLE 80
 
