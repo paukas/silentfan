@@ -1270,6 +1270,49 @@ type 0204, grid 2.5 mm</description>
 </package>
 </packages>
 </library>
+<library name="led" urn="urn:adsk.eagle:library:259">
+<description>&lt;b&gt;LEDs&lt;/b&gt;&lt;p&gt;
+&lt;author&gt;Created by librarian@cadsoft.de&lt;/author&gt;&lt;br&gt;
+Extended by Federico Battaglin &lt;author&gt;&amp;lt;federico.rd@fdpinternational.com&amp;gt;&lt;/author&gt; with DUOLED</description>
+<packages>
+<package name="LED3MM" urn="urn:adsk.eagle:footprint:15654/1" library_version="5">
+<description>&lt;B&gt;LED&lt;/B&gt;&lt;p&gt;
+3 mm, round</description>
+<wire x1="1.5748" y1="-1.27" x2="1.5748" y2="1.27" width="0.254" layer="51"/>
+<wire x1="-1.524" y1="0" x2="-1.1708" y2="0.9756" width="0.1524" layer="51" curve="-39.80361"/>
+<wire x1="-1.524" y1="0" x2="-1.1391" y2="-1.0125" width="0.1524" layer="51" curve="41.633208"/>
+<wire x1="1.1571" y1="0.9918" x2="1.524" y2="0" width="0.1524" layer="51" curve="-40.601165"/>
+<wire x1="1.1708" y1="-0.9756" x2="1.524" y2="0" width="0.1524" layer="51" curve="39.80361"/>
+<wire x1="0" y1="1.524" x2="1.2401" y2="0.8858" width="0.1524" layer="21" curve="-54.461337"/>
+<wire x1="-1.2192" y1="0.9144" x2="0" y2="1.524" width="0.1524" layer="21" curve="-53.130102"/>
+<wire x1="0" y1="-1.524" x2="1.203" y2="-0.9356" width="0.1524" layer="21" curve="52.126876"/>
+<wire x1="-1.203" y1="-0.9356" x2="0" y2="-1.524" width="0.1524" layer="21" curve="52.126876"/>
+<wire x1="-0.635" y1="0" x2="0" y2="0.635" width="0.1524" layer="51" curve="-90"/>
+<wire x1="-1.016" y1="0" x2="0" y2="1.016" width="0.1524" layer="51" curve="-90"/>
+<wire x1="0" y1="-0.635" x2="0.635" y2="0" width="0.1524" layer="51" curve="90"/>
+<wire x1="0" y1="-1.016" x2="1.016" y2="0" width="0.1524" layer="51" curve="90"/>
+<wire x1="0" y1="2.032" x2="1.561" y2="1.3009" width="0.254" layer="21" curve="-50.193108"/>
+<wire x1="-1.7929" y1="0.9562" x2="0" y2="2.032" width="0.254" layer="21" curve="-61.926949"/>
+<wire x1="0" y1="-2.032" x2="1.5512" y2="-1.3126" width="0.254" layer="21" curve="49.763022"/>
+<wire x1="-1.7643" y1="-1.0082" x2="0" y2="-2.032" width="0.254" layer="21" curve="60.255215"/>
+<wire x1="-2.032" y1="0" x2="-1.7891" y2="0.9634" width="0.254" layer="51" curve="-28.301701"/>
+<wire x1="-2.032" y1="0" x2="-1.7306" y2="-1.065" width="0.254" layer="51" curve="31.60822"/>
+<pad name="A" x="-1.27" y="0" drill="0.8128" shape="octagon"/>
+<pad name="K" x="1.27" y="0" drill="0.8128" shape="octagon"/>
+<text x="1.905" y="0.381" size="1.27" layer="25" ratio="10">&gt;NAME</text>
+<text x="1.905" y="-1.651" size="1.27" layer="27" ratio="10">&gt;VALUE</text>
+</package>
+</packages>
+<packages3d>
+<package3d name="LED3MM" urn="urn:adsk.eagle:package:15797/1" type="box" library_version="5">
+<description>LED
+3 mm, round</description>
+<packageinstances>
+<packageinstance name="LED3MM"/>
+</packageinstances>
+</package3d>
+</packages3d>
+</library>
 </libraries>
 <attributes>
 </attributes>
@@ -1564,14 +1607,40 @@ design rules under a new name.</description>
 <attribute name="VALUE" x="31.115" y="52.07" size="1.27" layer="27" ratio="10"/>
 </element>
 <element name="U$1" library="RELAY" package="RELAY" value="RELAY" x="29.21" y="67.31" smashed="yes"/>
+<element name="CTL_5V" library="con-faston" library_urn="urn:adsk.eagle:library:144" package="62221" package3d_urn="urn:adsk.eagle:package:6764/1" value="PIN1-2" x="7.62" y="-7.62" smashed="yes">
+<attribute name="MF" value="TYCO ELECTRONICS" x="-7.62" y="7.62" size="1.778" layer="27" display="off"/>
+<attribute name="MPN" value="62221-1" x="-7.62" y="7.62" size="1.778" layer="27" display="off"/>
+<attribute name="NAME" x="3.7592" y="-3.9624" size="1.27" layer="25"/>
+<attribute name="OC_FARNELL" value="unknown" x="-7.62" y="7.62" size="1.778" layer="27" display="off"/>
+<attribute name="OC_NEWARK" value="16H2318" x="-7.62" y="7.62" size="1.778" layer="27" display="off"/>
+<attribute name="VALUE" x="3.7592" y="-12.7" size="1.27" layer="27"/>
+</element>
+<element name="T2" library="transistor" library_urn="urn:adsk.eagle:library:402" package="TO92" package3d_urn="urn:adsk.eagle:package:28523/2" value="2N3904" x="5.08" y="-17.78" smashed="yes">
+<attribute name="NAME" x="8.255" y="-17.145" size="1.27" layer="25" ratio="10"/>
+<attribute name="POPULARITY" value="27" x="5.08" y="-17.78" size="1.778" layer="27" display="off"/>
+<attribute name="VALUE" x="8.255" y="-19.05" size="1.27" layer="27" ratio="10"/>
+</element>
+<element name="R2" library="resistor" library_urn="urn:adsk.eagle:library:348" package="0204V" package3d_urn="urn:adsk.eagle:package:25948/1" value="10k" x="5.08" y="-22.86" smashed="yes">
+<attribute name="NAME" x="2.9464" y="-21.6916" size="1.27" layer="25" ratio="10"/>
+<attribute name="VALUE" x="2.9464" y="-25.1714" size="1.27" layer="27" ratio="10"/>
+</element>
+<element name="LED1" library="led" library_urn="urn:adsk.eagle:library:259" package="LED3MM" package3d_urn="urn:adsk.eagle:package:15797/1" value="" x="2.54" y="-27.94" smashed="yes">
+<attribute name="NAME" x="4.445" y="-27.559" size="1.27" layer="25" ratio="10"/>
+<attribute name="POPULARITY" value="97" x="2.54" y="-27.94" size="1.778" layer="27" display="off"/>
+<attribute name="VALUE" x="4.445" y="-29.591" size="1.27" layer="27" ratio="10"/>
+</element>
+<element name="R3" library="resistor" library_urn="urn:adsk.eagle:library:348" package="0204V" package3d_urn="urn:adsk.eagle:package:25948/1" value="1k" x="5.08" y="-35.56" smashed="yes">
+<attribute name="NAME" x="2.9464" y="-34.3916" size="1.27" layer="25" ratio="10"/>
+<attribute name="VALUE" x="2.9464" y="-37.8714" size="1.27" layer="27" ratio="10"/>
+</element>
 </elements>
 <signals>
 <signal name="N$1">
 <contactref element="FI_GND" pad="1"/>
 <contactref element="FO_GND" pad="1"/>
 <contactref element="PWR_GND" pad="1"/>
-<contactref element="CTL_GND" pad="1"/>
-<contactref element="U$1" pad="P$2"/>
+<wire x1="11.43" y1="72.39" x2="59.69" y2="73.66" width="0" layer="19" extent="1-1"/>
+<wire x1="7.62" y1="38.1" x2="11.43" y2="72.39" width="0" layer="19" extent="1-1"/>
 </signal>
 <signal name="N$3">
 <contactref element="FI_TACH" pad="1"/>
@@ -1584,27 +1653,60 @@ design rules under a new name.</description>
 <signal name="N$2">
 <contactref element="PWR_VCC5" pad="1"/>
 <contactref element="U$1" pad="COM_CPEN"/>
-<contactref element="T1" pad="1"/>
+<wire x1="8.89" y1="30.48" x2="41.41" y2="73.31" width="0" layer="19" extent="1-1"/>
 </signal>
 <signal name="N$5">
 <contactref element="PWR_VCC12" pad="1"/>
 <contactref element="U$1" pad="COM-CLOSE"/>
 </signal>
-<signal name="N$6">
-<contactref element="T1" pad="3"/>
-<contactref element="U$1" pad="P$1"/>
-</signal>
-<signal name="N$7">
-<contactref element="T1" pad="2"/>
-<contactref element="R1" pad="2"/>
-</signal>
-<signal name="N$8">
-<contactref element="R1" pad="1"/>
-<contactref element="CTL_ON_OFF_5V" pad="1"/>
-</signal>
 <signal name="N$9">
 <contactref element="U$1" pad="COM"/>
 <contactref element="FO_VCC" pad="1"/>
+</signal>
+<signal name="N$10">
+<contactref element="R3" pad="2"/>
+<contactref element="U$1" pad="P$2"/>
+<contactref element="CTL_GND" pad="1"/>
+<contactref element="R2" pad="2"/>
+<wire x1="8.89" y1="12.7" x2="29.21" y2="61.31" width="0" layer="19" extent="1-1"/>
+<wire x1="6.35" y1="-22.86" x2="8.89" y2="12.7" width="0" layer="19" extent="1-1"/>
+<wire x1="6.35" y1="-35.56" x2="6.35" y2="-22.86" width="0" layer="19" extent="1-1"/>
+</signal>
+<signal name="N$11">
+<contactref element="T1" pad="3"/>
+<contactref element="U$1" pad="P$1"/>
+<wire x1="26.67" y1="53.34" x2="29.21" y2="73.31" width="0" layer="19" extent="1-1"/>
+</signal>
+<signal name="N$12">
+<contactref element="T2" pad="3"/>
+<contactref element="LED1" pad="A"/>
+<wire x1="3.81" y1="-17.78" x2="1.27" y2="-27.94" width="0" layer="19" extent="1-1"/>
+</signal>
+<signal name="N$13">
+<contactref element="R3" pad="1"/>
+<contactref element="LED1" pad="K"/>
+<wire x1="3.81" y1="-27.94" x2="3.81" y2="-35.56" width="0" layer="19" extent="1-1"/>
+</signal>
+<signal name="N$14">
+<contactref element="CTL_5V" pad="1"/>
+<contactref element="T1" pad="1"/>
+<contactref element="T2" pad="1"/>
+<wire x1="7.62" y1="-7.62" x2="29.21" y2="53.34" width="0" layer="19" extent="1-1"/>
+<wire x1="6.35" y1="-17.78" x2="7.62" y2="-7.62" width="0" layer="19" extent="1-1"/>
+</signal>
+<signal name="N$7">
+<contactref element="CTL_ON_OFF_5V" pad="1"/>
+<contactref element="R1" pad="1"/>
+<contactref element="R2" pad="1"/>
+<wire x1="8.89" y1="6.35" x2="26.67" y2="48.26" width="0" layer="19" extent="1-1"/>
+<wire x1="3.81" y1="-22.86" x2="8.89" y2="6.35" width="0" layer="19" extent="1-1"/>
+</signal>
+<signal name="N$6">
+<contactref element="T1" pad="2"/>
+<contactref element="T2" pad="2"/>
+<contactref element="R1" pad="2"/>
+<wire x1="29.21" y1="48.26" x2="27.94" y2="55.245" width="0" layer="19" extent="1-1"/>
+<wire x1="5.08" y1="-15.875" x2="29.21" y2="48.26" width="0" layer="19" extent="1-1"/>
 </signal>
 </signals>
 <mfgpreviewcolors>
