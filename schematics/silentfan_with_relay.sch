@@ -6595,9 +6595,6 @@ Source: www.kingbright.com</description>
 <part name="FO_GND" library="con-faston" library_urn="urn:adsk.eagle:library:144" deviceset="PIN1-2" device="" package3d_urn="urn:adsk.eagle:package:6764/1"/>
 <part name="FO_TACH" library="con-faston" library_urn="urn:adsk.eagle:library:144" deviceset="PIN1-2" device="" package3d_urn="urn:adsk.eagle:package:6764/1"/>
 <part name="FO_PWM" library="con-faston" library_urn="urn:adsk.eagle:library:144" deviceset="PIN1-2" device="" package3d_urn="urn:adsk.eagle:package:6764/1"/>
-<part name="PWR_VCC12" library="con-faston" library_urn="urn:adsk.eagle:library:144" deviceset="PIN1-2" device="" package3d_urn="urn:adsk.eagle:package:6764/1"/>
-<part name="PWR_VCC5" library="con-faston" library_urn="urn:adsk.eagle:library:144" deviceset="PIN1-2" device="" package3d_urn="urn:adsk.eagle:package:6764/1"/>
-<part name="PWR_GND" library="con-faston" library_urn="urn:adsk.eagle:library:144" deviceset="PIN1-2" device="" package3d_urn="urn:adsk.eagle:package:6764/1"/>
 <part name="CTL_ON_OFF_5V" library="con-faston" library_urn="urn:adsk.eagle:library:144" deviceset="PIN1-2" device="" package3d_urn="urn:adsk.eagle:package:6764/1"/>
 <part name="CTL_GND" library="con-faston" library_urn="urn:adsk.eagle:library:144" deviceset="PIN1-2" device="" package3d_urn="urn:adsk.eagle:package:6764/1"/>
 <part name="T1" library="transistor" library_urn="urn:adsk.eagle:library:402" deviceset="2N3904" device="" package3d_urn="urn:adsk.eagle:package:28523/2"/>
@@ -6608,7 +6605,7 @@ Source: www.kingbright.com</description>
 <part name="R2" library="resistor" library_urn="urn:adsk.eagle:library:348" deviceset="R-EU_" device="0204/2V" package3d_urn="urn:adsk.eagle:package:25948/1" value="10k"/>
 <part name="LED1" library="led" library_urn="urn:adsk.eagle:library:259" deviceset="LED" device="3MM" package3d_urn="urn:adsk.eagle:package:15797/1"/>
 <part name="R3" library="resistor" library_urn="urn:adsk.eagle:library:348" deviceset="R-EU_" device="0204/2V" package3d_urn="urn:adsk.eagle:package:25948/1" value="1k"/>
-<part name="R4" library="resistor" library_urn="urn:adsk.eagle:library:348" deviceset="R-EU_" device="0309/12" package3d_urn="urn:adsk.eagle:package:26089/1" value="50"/>
+<part name="R4" library="resistor" library_urn="urn:adsk.eagle:library:348" deviceset="R-EU_" device="0309/12" package3d_urn="urn:adsk.eagle:package:26089/1" value="100"/>
 </parts>
 <sheets>
 <sheet>
@@ -6641,15 +6638,6 @@ Source: www.kingbright.com</description>
 </instance>
 <instance part="FO_PWM" gate="G$1" x="91.44" y="76.2" smashed="yes" rot="MR180">
 <attribute name="NAME" x="96.52" y="77.47" size="1.778" layer="95" rot="MR180"/>
-</instance>
-<instance part="PWR_VCC12" gate="G$1" x="15.24" y="68.58" smashed="yes" rot="R180">
-<attribute name="NAME" x="10.16" y="69.85" size="1.778" layer="95" rot="R180"/>
-</instance>
-<instance part="PWR_VCC5" gate="G$1" x="15.24" y="66.04" smashed="yes" rot="R180">
-<attribute name="NAME" x="10.16" y="67.31" size="1.778" layer="95" rot="R180"/>
-</instance>
-<instance part="PWR_GND" gate="G$1" x="15.24" y="71.12" smashed="yes" rot="R180">
-<attribute name="NAME" x="10.16" y="72.39" size="1.778" layer="95" rot="R180"/>
 </instance>
 <instance part="CTL_ON_OFF_5V" gate="G$1" x="15.24" y="48.26" smashed="yes" rot="R180">
 <attribute name="NAME" x="10.16" y="49.53" size="1.778" layer="95" rot="R180"/>
@@ -6685,9 +6673,9 @@ Source: www.kingbright.com</description>
 <attribute name="NAME" x="69.85" y="21.8186" size="1.778" layer="95"/>
 <attribute name="VALUE" x="74.93" y="22.098" size="1.778" layer="96"/>
 </instance>
-<instance part="R4" gate="G$1" x="27.94" y="66.04" smashed="yes">
-<attribute name="NAME" x="29.21" y="62.4586" size="1.778" layer="95"/>
-<attribute name="VALUE" x="24.13" y="62.738" size="1.778" layer="96"/>
+<instance part="R4" gate="G$1" x="30.48" y="66.04" smashed="yes">
+<attribute name="NAME" x="31.75" y="62.4586" size="1.778" layer="95"/>
+<attribute name="VALUE" x="26.67" y="62.738" size="1.778" layer="96"/>
 </instance>
 </instances>
 <busses>
@@ -6695,14 +6683,17 @@ Source: www.kingbright.com</description>
 <nets>
 <net name="N$1" class="0">
 <segment>
-<pinref part="FI_GND" gate="G$1" pin="1"/>
-<pinref part="FO_GND" gate="G$1" pin="1"/>
-<wire x1="20.32" y1="83.82" x2="35.56" y2="83.82" width="0.1524" layer="91"/>
-<pinref part="PWR_GND" gate="G$1" pin="1"/>
-<wire x1="35.56" y1="83.82" x2="86.36" y2="83.82" width="0.1524" layer="91"/>
-<wire x1="20.32" y1="71.12" x2="35.56" y2="71.12" width="0.1524" layer="91"/>
-<wire x1="35.56" y1="71.12" x2="35.56" y2="83.82" width="0.1524" layer="91"/>
-<junction x="35.56" y="83.82"/>
+<pinref part="U$1" gate="G$1" pin="COM-CLOSE"/>
+<wire x1="45.72" y1="68.58" x2="91.44" y2="68.58" width="0.1524" layer="91"/>
+<wire x1="91.44" y1="68.58" x2="91.44" y2="45.72" width="0.1524" layer="91"/>
+<pinref part="FI_VCC12" gate="G$1" pin="1"/>
+<wire x1="45.72" y1="81.28" x2="45.72" y2="68.58" width="0.1524" layer="91"/>
+<wire x1="45.72" y1="81.28" x2="22.86" y2="81.28" width="0.1524" layer="91"/>
+<wire x1="22.86" y1="81.28" x2="20.32" y2="81.28" width="0.1524" layer="91"/>
+<wire x1="22.86" y1="81.28" x2="22.86" y2="66.04" width="0.1524" layer="91"/>
+<junction x="22.86" y="81.28"/>
+<pinref part="R4" gate="G$1" pin="1"/>
+<wire x1="22.86" y1="66.04" x2="25.4" y2="66.04" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="N$3" class="0">
@@ -6723,16 +6714,8 @@ Source: www.kingbright.com</description>
 <segment>
 <pinref part="U$1" gate="G$1" pin="COM-OPEN"/>
 <wire x1="76.2" y1="66.04" x2="76.2" y2="45.72" width="0.1524" layer="91"/>
-<wire x1="33.02" y1="66.04" x2="76.2" y2="66.04" width="0.1524" layer="91"/>
+<wire x1="35.56" y1="66.04" x2="76.2" y2="66.04" width="0.1524" layer="91"/>
 <pinref part="R4" gate="G$1" pin="2"/>
-</segment>
-</net>
-<net name="N$5" class="0">
-<segment>
-<pinref part="PWR_VCC12" gate="G$1" pin="1"/>
-<wire x1="20.32" y1="68.58" x2="91.44" y2="68.58" width="0.1524" layer="91"/>
-<pinref part="U$1" gate="G$1" pin="COM-CLOSE"/>
-<wire x1="91.44" y1="68.58" x2="91.44" y2="45.72" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="N$9" class="0">
@@ -6818,11 +6801,11 @@ Source: www.kingbright.com</description>
 <junction x="50.8" y="35.56"/>
 </segment>
 </net>
-<net name="N$8" class="0">
+<net name="N$5" class="0">
 <segment>
-<pinref part="PWR_VCC5" gate="G$1" pin="1"/>
-<wire x1="20.32" y1="66.04" x2="22.86" y2="66.04" width="0.1524" layer="91"/>
-<pinref part="R4" gate="G$1" pin="1"/>
+<pinref part="FO_GND" gate="G$1" pin="1"/>
+<pinref part="FI_GND" gate="G$1" pin="1"/>
+<wire x1="20.32" y1="83.82" x2="86.36" y2="83.82" width="0.1524" layer="91"/>
 </segment>
 </net>
 </nets>
