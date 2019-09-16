@@ -6665,9 +6665,9 @@ Source: www.kingbright.com</description>
 <attribute name="NAME" x="26.8986" y="44.45" size="1.778" layer="95" rot="R270"/>
 <attribute name="VALUE" x="27.178" y="39.37" size="1.778" layer="96" rot="R270"/>
 </instance>
-<instance part="LED1" gate="G$1" x="60.96" y="20.32" smashed="yes" rot="R90">
-<attribute name="NAME" x="65.532" y="23.876" size="1.778" layer="95" rot="R180"/>
-<attribute name="VALUE" x="65.532" y="26.035" size="1.778" layer="96" rot="R180"/>
+<instance part="LED1" gate="G$1" x="60.96" y="20.32" smashed="yes" rot="MR270">
+<attribute name="NAME" x="65.532" y="16.764" size="1.778" layer="95" rot="MR0"/>
+<attribute name="VALUE" x="65.532" y="14.605" size="1.778" layer="96" rot="MR0"/>
 </instance>
 <instance part="R3" gate="G$1" x="73.66" y="20.32" smashed="yes">
 <attribute name="NAME" x="69.85" y="21.8186" size="1.778" layer="95"/>
@@ -6684,16 +6684,15 @@ Source: www.kingbright.com</description>
 <net name="N$1" class="0">
 <segment>
 <pinref part="U$1" gate="G$1" pin="COM-CLOSE"/>
-<wire x1="45.72" y1="68.58" x2="91.44" y2="68.58" width="0.1524" layer="91"/>
-<wire x1="91.44" y1="68.58" x2="91.44" y2="45.72" width="0.1524" layer="91"/>
+<wire x1="22.86" y1="71.12" x2="91.44" y2="71.12" width="0.1524" layer="91"/>
+<wire x1="91.44" y1="71.12" x2="91.44" y2="45.72" width="0.1524" layer="91"/>
 <pinref part="FI_VCC12" gate="G$1" pin="1"/>
-<wire x1="45.72" y1="81.28" x2="45.72" y2="68.58" width="0.1524" layer="91"/>
-<wire x1="45.72" y1="81.28" x2="22.86" y2="81.28" width="0.1524" layer="91"/>
-<wire x1="22.86" y1="81.28" x2="20.32" y2="81.28" width="0.1524" layer="91"/>
-<wire x1="22.86" y1="81.28" x2="22.86" y2="66.04" width="0.1524" layer="91"/>
-<junction x="22.86" y="81.28"/>
+<wire x1="22.86" y1="71.12" x2="22.86" y2="66.04" width="0.1524" layer="91"/>
+<junction x="22.86" y="71.12"/>
 <pinref part="R4" gate="G$1" pin="1"/>
 <wire x1="22.86" y1="66.04" x2="25.4" y2="66.04" width="0.1524" layer="91"/>
+<wire x1="20.32" y1="81.28" x2="22.86" y2="81.28" width="0.1524" layer="91"/>
+<wire x1="22.86" y1="81.28" x2="22.86" y2="71.12" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="N$3" class="0">
