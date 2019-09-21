@@ -1,6 +1,7 @@
 #define PIN_CTL PD2
 #define SERIAL_TIMEOUT 500
 #define MAX_NOSIGNALCNT 5
+#define SILENTMODE_SWITCHBACK_DELAY 10000
 
 #define TEMP_LOW 43
 #define TEMP_HIGH 45
@@ -18,11 +19,42 @@ void setup() {
 }
 
 bool _silentModeEnabeld = false;
+unsigned long _silentModeSwitchTime = 0;
 short _noSignalCnt = 0;
 bool _ledState = HIGH;
 
+bool switchDelayInEffect(unsigned long now) {
+  if (_silentModeEnabeld)
+    return false;
+  else
+    return !switchDelayExpired(now, SILENTMODE_SWITCHBACK_DELAY);
+}
+
+bool switchDelayExpired(unsigned long now, unsigned long delay) {
+  const unsigned long ULONG_MAX = ((unsigned long)0) - 1;
+
+  unsigned long timeDiff = 0;
+  if (now < _silentModeSwitchTime) {
+    timeDiff = ULONG_MAX - _silentModeSwitchTime + now;
+  } else {
+    timeDiff = now - _silentModeSwitchTime;
+  }
+
+  if (timeDiff > delay) {
+    return true;
+  }
+
+  return false;
+}
+
 void loop() {
+  unsigned long now = millis();
   String temperatureString = Serial.readStringUntil('\n');
+  if (switchDelayInEffect(now)) {
+    Serial.println("Switch delay in effect");
+    return;
+  }
+
   bool silentModeEnabled = _silentModeEnabeld;
   short temperature = 0;
   if (parseTemperatureString(temperatureString, &temperature)) {
@@ -64,6 +96,7 @@ void loop() {
     }
 
     _silentModeEnabeld = silentModeEnabled;
+    _silentModeSwitchTime = now;
     Serial.print("Silent mode: ");
     Serial.print(_silentModeEnabeld);
     Serial.println();
