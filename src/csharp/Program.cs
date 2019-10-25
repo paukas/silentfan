@@ -2,12 +2,288 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.IO.Ports;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Win32;
 
 namespace gputempmon
 {
+    class InstallerUi
+    {
+        public void Run()
+        {
+            string currentDir = "";
+            string defaultDir = "";
+            MenuItem<string>[] pathMenuItems =
+            {
+                new MenuItem<string>($"> {defaultDir}", string.Empty),
+                new MenuItem<string>("> Custom", string.Empty)
+            };
+            
+            string installationDir = new MenuUi<string>(pathMenuItems).Choose().Item;
+            bool isValidDirectory = IsValidDirectory(installationDir);
+            while (!isValidDirectory)
+            {
+                ConsoleColor foregroundColor = Console.ForegroundColor;
+                ConsoleColor backgroundColor = Console.BackgroundColor;
+
+                Console.ForegroundColor = backgroundColor;
+                Console.BackgroundColor = foregroundColor;
+                Console.Write("> ");
+                installationDir = Console.ReadLine();
+                Console.ForegroundColor = foregroundColor;
+                Console.BackgroundColor = backgroundColor;
+
+                isValidDirectory = IsValidDirectory(installationDir);
+                if (!isValidDirectory)
+                {
+                    Console.WriteLine("Entered directory is invalid. Please enter valid directory:");
+                }
+            }
+
+            if (IsSameDir(currentDir, installationDir))
+            {
+                Console.WriteLine("! This application is already installed");
+                return;
+            }
+
+            if (!TryCreateDir(installationDir))
+            {
+                Console.WriteLine("! Failed to create directory");
+                return;
+            }
+
+            if (!TryCopyFiles(currentDir, installationDir))
+            {
+                Console.WriteLine("! Failed to copy files");
+                return;
+            }
+
+            string applicationFileName = "";
+            string applicationPath = Path.Combine(installationDir, applicationFileName);
+            if (!TryAddToStartup(applicationPath))
+            {
+                Console.WriteLine("! Failed to add application to startup");
+                return;
+            }
+
+            Console.Write("Installation successfull. Launch?");
+            bool launchProgram = new MenuUi<bool>(new[]
+            {
+                new MenuItem<bool>("> Yes", true),
+                new MenuItem<bool>("> No", false),
+            }).Choose().Item;
+
+            if (launchProgram)
+            {
+                Launch(applicationPath);
+                Console.WriteLine("Application launched");
+            }
+            
+            Console.WriteLine("Goodbye");
+        }
+
+        private void Launch(string applicationPath)
+        {
+            Process.Start(applicationPath);
+        }
+
+        private bool TryAddToStartup(string applicationPath)
+        {
+            const string registryValueName = "silentfan";
+            const string registryKeyName = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run";
+
+            try
+            {
+                Registry.SetValue(registryKeyName, registryValueName,
+                    applicationPath);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private bool TryCopyFiles(string currentDir, string installationDir)
+        {
+            
+        }
+
+        private bool TryCreateDir(string installationDir)
+        {
+            if (!Directory.Exists(installationDir))
+            {
+                try
+                {
+                    Directory.CreateDirectory(installationDir);
+                    return true;
+                }
+                catch
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private bool IsSameDir(string currentDir, string installationDir)
+        {
+            return currentDir != installationDir;
+        }
+
+        private bool IsValidDirectory(string directory)
+        {
+            return Path.IsPathRooted(directory) && DriveExists(directory);
+            
+            bool DriveExists(string dir)
+            {
+                return Directory.Exists(Path.GetPathRoot(dir));
+            }
+        }
+
+    }
+
+    class MainUi
+    {
+        public void Start()
+        {
+            MenuItem<Action>[] menuActions = 
+            {
+                new MenuItem<Action>("> run", Run),
+                new MenuItem<Action>("> install", Install),
+                new MenuItem<Action>("> uninstall", Uninstall)
+            };
+            MenuUi<Action> menuUi = new MenuUi<Action>(menuActions);
+            MenuItem<Action> menuItem = menuUi.Choose();
+            Action action = menuItem.Item;
+            
+            action.Invoke();
+        }
+
+        private void Uninstall()
+        {
+            throw new NotImplementedException();
+        }
+
+        private void Install()
+        {
+            new InstallerUi().Run();
+        }
+
+        private void Run()
+        {
+            Console.WriteLine("Start!");
+            
+            ArduinoComPort arduinoComPort = Arduino.Detect().Single();
+            ConsoleUi ui = ConsoleUi.Create();
+
+            using (Arduino arduino = arduinoComPort.Connect())
+            using (GraphicsCard graphicsCard = GraphicsCard.Open())
+            {
+                while (true)
+                {
+                    Stopwatch stopwatch = Stopwatch.StartNew();
+                    double temperature = graphicsCard.ReadTemperature();
+                    stopwatch.Stop();
+
+                    ui.RefreshTemperature(temperature, stopwatch.Elapsed);
+                    arduino.UpdateTemperature(temperature);
+
+                    Task.Delay(350).Wait();
+                }
+            }
+
+            Console.WriteLine("The end...");
+        }
+    }
+
+    class MenuUi<TResult>
+    {
+        private readonly MenuItem<TResult>[] _menuActions;
+
+        public MenuUi(MenuItem<TResult>[] menuActions)
+        {
+            _menuActions = menuActions;
+        }
+
+        public MenuItem<TResult> Choose()
+        {
+            int selectedAction = 0;
+            
+            Console.WriteLine("Choose option:");
+            int topRow = Console.CursorTop;
+
+            PrintMenu(_menuActions, selectedAction, topRow);
+            while (true)
+            {
+                int previousAction = selectedAction;
+                ConsoleKeyInfo consoleKey = Console.ReadKey(true);
+                switch (consoleKey.Key)
+                {
+                    case ConsoleKey.UpArrow:
+                        selectedAction = Math.Max(selectedAction - 1, 0);
+                        break;
+                    case ConsoleKey.DownArrow:
+                        selectedAction = Math.Min(selectedAction + 1, _menuActions.Length - 1);
+                        break;
+                    case ConsoleKey.Enter:
+                        return _menuActions[selectedAction];
+                }
+
+                if (previousAction != selectedAction)
+                {
+                    PrintMenu(_menuActions, selectedAction, topRow);
+                }
+            }
+        }
+
+        private static void PrintMenu<T>(MenuItem<T>[] menuActions, int selectedAction, int topRow)
+        {
+            Console.CursorLeft = 0;
+            Console.CursorTop = topRow;
+            for (var i = 0; i < menuActions.Length; i++)
+            {
+                MenuItem<T> menuItem = menuActions[i];
+                menuItem.Print(i == selectedAction);
+            }
+        }
+    }
+
+    class MenuItem<T>
+    {
+        public T Item { get; }
+        private readonly string _actionText;
+
+        public MenuItem(string actionText, T item)
+        {
+            Item = item;
+            _actionText = actionText;
+        }
+
+        public void Print(bool selected)
+        {
+            if (selected)
+            {
+                ConsoleColor foregroundColor = Console.ForegroundColor;
+                ConsoleColor backgroundColor = Console.BackgroundColor;
+
+                Console.ForegroundColor = backgroundColor;
+                Console.BackgroundColor = foregroundColor;
+                Console.WriteLine(_actionText);
+                Console.ForegroundColor = foregroundColor;
+                Console.BackgroundColor = backgroundColor;
+            }
+            else
+            {
+                Console.WriteLine(_actionText);
+            }
+        }
+    }
+
     class ConsoleUi
     {
         private readonly object _consoleLock = new object();
@@ -193,28 +469,7 @@ namespace gputempmon
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Start!");
-
-            ArduinoComPort arduinoComPort = Arduino.Detect().Single();
-            ConsoleUi ui = ConsoleUi.Create();
-
-            using (Arduino arduino = arduinoComPort.Connect())
-            using (GraphicsCard graphicsCard = GraphicsCard.Open())
-            {
-                while (true)
-                {
-                    Stopwatch stopwatch = Stopwatch.StartNew();
-                    double temperature = graphicsCard.ReadTemperature();
-                    stopwatch.Stop();
-
-                    ui.RefreshTemperature(temperature, stopwatch.Elapsed);
-                    arduino.UpdateTemperature(temperature);
-
-                    Task.Delay(350).Wait();
-                }
-            }
-
-            Console.WriteLine("The end...");
+            new MainUi().Start();
         }
     }
 
