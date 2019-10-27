@@ -135,11 +135,11 @@ namespace gputempmon
         {
             const string registryValueName = StartupEntryName;
             const string registryKeyName = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run";
+            string command = $"\"{applicationPath}\" --run";
 
             try
             {
-                Registry.SetValue(registryKeyName, registryValueName,
-                    applicationPath);
+                Registry.SetValue(registryKeyName, registryValueName, command);
                 return true;
             }
             catch
@@ -154,8 +154,5 @@ namespace gputempmon
         {
             return currentDir == installationDir;
         }
-
-
-
     }
 }
