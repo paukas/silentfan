@@ -1,17 +1,14 @@
 ﻿using System;
-using System.Diagnostics;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace gputempmon
 {
     class MainUi
     {
-        public void Start()
+        public void Run()
         {
             MenuItem<Action>[] menuActions = 
             {
-                new MenuItem<Action>("> run", Run),
+                new MenuItem<Action>("> run", RunTempMonitor),
                 new MenuItem<Action>("> install", Install),
                 new MenuItem<Action>("> uninstall", Uninstall)
             };
@@ -24,7 +21,11 @@ namespace gputempmon
 
         private void Uninstall()
         {
-            throw new NotImplementedException();
+            Console.WriteLine("Uninstall not implemented yet");
+            Console.WriteLine("Uninstall manually:");
+            Console.WriteLine("- delete silentfan value from registry (HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run)");
+            Console.WriteLine("- delete silentfan directory");
+            return;
         }
 
         private void Install()
@@ -32,30 +33,9 @@ namespace gputempmon
             new InstallerUi().Run();
         }
 
-        private void Run()
+        private void RunTempMonitor()
         {
-            Console.WriteLine("Start!");
-            
-            ArduinoComPort arduinoComPort = Arduino.Detect().Single();
-            ConsoleUi ui = ConsoleUi.Create();
-
-            using (Arduino arduino = arduinoComPort.Connect())
-            using (GraphicsCard graphicsCard = GraphicsCard.Open())
-            {
-                while (true)
-                {
-                    Stopwatch stopwatch = Stopwatch.StartNew();
-                    double temperature = graphicsCard.ReadTemperature();
-                    stopwatch.Stop();
-
-                    ui.RefreshTemperature(temperature, stopwatch.Elapsed);
-                    arduino.UpdateTemperature(temperature);
-
-                    Task.Delay(350).Wait();
-                }
-            }
-
-            Console.WriteLine("The end...");
+            new TempMonitorUi().Run();
         }
     }
 }

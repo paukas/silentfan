@@ -1,70 +1,72 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
+using System.Security.Principal;
 using Microsoft.Win32;
 
 namespace gputempmon
 {
+
     class InstallerUi
     {
+        private const string ExecutableName = "gputempmon.exe";
+        private const string FolderName = "silentfan";
+        private const string StartupEntryName = "silentfan";
+
+        private FileSystem _fs = new FileSystem();
+
         public void Run()
         {
-            string currentDir = "";
-            string defaultDir = "";
-            MenuItem<string>[] pathMenuItems =
+            if (!IsAdministrator())
             {
-                new MenuItem<string>($"> {defaultDir}", string.Empty),
-                new MenuItem<string>("> Custom", string.Empty)
-            };
-            
-            string installationDir = new MenuUi<string>(pathMenuItems).Choose().Item;
-            bool isValidDirectory = IsValidDirectory(installationDir);
-            while (!isValidDirectory)
+                Error("Installation must be run as administrator. Please restart application as administrator.");
+                return;
+            }
+
+            string currentDir = GetCurrentDir();
+            string defaultInstallationDir = GetDefaultDir();
+            string installationDir = defaultInstallationDir;
+            string applicationPath = Path.Combine(installationDir, ExecutableName);
+
+            bool isValidDirectory = _fs.IsValidDirectory(installationDir);
+            if (!isValidDirectory)
             {
-                ConsoleColor foregroundColor = Console.ForegroundColor;
-                ConsoleColor backgroundColor = Console.BackgroundColor;
-
-                Console.ForegroundColor = backgroundColor;
-                Console.BackgroundColor = foregroundColor;
-                Console.Write("> ");
-                installationDir = Console.ReadLine();
-                Console.ForegroundColor = foregroundColor;
-                Console.BackgroundColor = backgroundColor;
-
-                isValidDirectory = IsValidDirectory(installationDir);
-                if (!isValidDirectory)
-                {
-                    Console.WriteLine("Entered directory is invalid. Please enter valid directory:");
-                }
+                Error("Entered directory is invalid. Please enter valid directory:");
+                return;
             }
 
             if (IsSameDir(currentDir, installationDir))
             {
-                Console.WriteLine("! This application is already installed");
+                Error("! This application is already installed");
                 return;
             }
 
-            if (!TryCreateDir(installationDir))
+            if (!_fs.TryCreateDir(installationDir))
             {
-                Console.WriteLine("! Failed to create directory");
+                Error("! Failed to create directory");
                 return;
             }
 
-            if (!TryCopyFiles(currentDir, installationDir))
+            if (!TryKillRunningApplication(applicationPath))
             {
-                Console.WriteLine("! Failed to copy files");
+                Error("! Failed to kill already running application");
+                return;
+            }
+            
+            if (!_fs.TryCopyFiles(currentDir, installationDir))
+            {
+                Error("! Failed to copy files");
                 return;
             }
 
-            string applicationFileName = "";
-            string applicationPath = Path.Combine(installationDir, applicationFileName);
             if (!TryAddToStartup(applicationPath))
             {
-                Console.WriteLine("! Failed to add application to startup");
+                Error("! Failed to add application to startup");
                 return;
             }
 
-            Console.Write("Installation successfull. Launch?");
+            Console.WriteLine("Installation successfull. Launch?");
             bool launchProgram = new MenuUi<bool>(new[]
             {
                 new MenuItem<bool>("> Yes", true),
@@ -76,18 +78,62 @@ namespace gputempmon
                 Launch(applicationPath);
                 Console.WriteLine("Application launched");
             }
-            
+
             Console.WriteLine("Goodbye");
+        }
+
+        private bool TryKillRunningApplication(string applicationPath)
+        {
+            string processName = Path.GetFileNameWithoutExtension(applicationPath);
+            Process[] processes = Process.GetProcessesByName(processName);
+            Process runningProcess = processes.FirstOrDefault(p => p.MainModule.FileName == applicationPath);
+            if (runningProcess == null)
+                return true;
+
+            try
+            {
+                runningProcess.Kill();
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private void Error(string text)
+        {
+            Console.WriteLine(text);
+            new MenuUi<bool>(new[] { new MenuItem<bool>("> Exit", true) }).Choose();
+            return;
+        }
+
+        private bool IsAdministrator()
+        {
+            WindowsIdentity identity = WindowsIdentity.GetCurrent();
+            WindowsPrincipal principal = new WindowsPrincipal(identity);
+            return principal.IsInRole(WindowsBuiltInRole.Administrator);
+        }
+
+        private string GetCurrentDir()
+        {
+            return Path.GetFullPath(AppDomain.CurrentDomain.BaseDirectory);
+        }
+
+        private static string GetDefaultDir()
+        {
+            string programFilesDir = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+            return Path.Combine(programFilesDir, FolderName);
         }
 
         private void Launch(string applicationPath)
         {
-            Process.Start(applicationPath);
+            Process.Start(applicationPath, "--run");
         }
 
         private bool TryAddToStartup(string applicationPath)
         {
-            const string registryValueName = "silentfan";
+            const string registryValueName = StartupEntryName;
             const string registryKeyName = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run";
 
             try
@@ -102,43 +148,14 @@ namespace gputempmon
             }
         }
 
-        private bool TryCopyFiles(string currentDir, string installationDir)
-        {
-            
-        }
 
-        private bool TryCreateDir(string installationDir)
-        {
-            if (!Directory.Exists(installationDir))
-            {
-                try
-                {
-                    Directory.CreateDirectory(installationDir);
-                    return true;
-                }
-                catch
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
 
         private bool IsSameDir(string currentDir, string installationDir)
         {
-            return currentDir != installationDir;
+            return currentDir == installationDir;
         }
 
-        private bool IsValidDirectory(string directory)
-        {
-            return Path.IsPathRooted(directory) && DriveExists(directory);
-            
-            bool DriveExists(string dir)
-            {
-                return Directory.Exists(Path.GetPathRoot(dir));
-            }
-        }
+
 
     }
 }
