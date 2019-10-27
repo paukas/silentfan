@@ -93,6 +93,12 @@ namespace gputempmon
             try
             {
                 runningProcess.Kill();
+                bool processExited = runningProcess.WaitForExit(1000);
+                while (!processExited)
+                {
+                    Console.WriteLine("Waiting for process to exit");
+                    processExited = runningProcess.WaitForExit(1000);
+                }
                 return true;
             }
             catch
