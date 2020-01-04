@@ -10,15 +10,23 @@ namespace gputempmon
         {
             Console.Clear();
             Console.CursorVisible = false;
-            PrintHeader("N/A", "N/A");
+
+            Refresh(FormattedUiState.NotAvailable);
         }
 
-        public void RefreshTemperature(double temperature, TimeSpan refreshOperationDuration)
+        public void Refresh(UiState state)
         {
-            PrintHeader(temperature.ToString(), refreshOperationDuration.TotalMilliseconds.ToString("0.##"));
+            Refresh(new FormattedUiState
+            {
+                Temperature = state.Temperature.ToString(),
+                FanRpm = state.FanRpm.ToString(),
+                FanDutyCycle = state.FanDutyCycle.ToString(),
+                FanDutyCycleNew = state.FanDutyCycleNew.ToString(),
+                RefreshElapsed = state.RefreshElapsed.TotalMilliseconds.ToString("0.##"),
+            });
         }
 
-        public void PrintHeader(string temperature, string refreshDuration)
+        private void Refresh(FormattedUiState state)
         {
             lock (_consoleLock)
             {
@@ -26,11 +34,30 @@ namespace gputempmon
                 int cursorLeft = Console.CursorLeft;
 
                 Console.SetCursorPosition(0, 0);
-                Console.WriteLine($"Current temperature: {temperature}".PadRight(Console.BufferWidth));
-                Console.WriteLine($"Refresh duration: {refreshDuration} ms".PadRight(Console.BufferWidth));
+
+                WriteWholeLine($"Temperature:       {state.Temperature}");
+                WriteWholeLine($"RPM:               {state.FanRpm}");
+                WriteWholeLine($"Duty cycle:        {FormatDutyCycle(state.FanDutyCycle, state.FanDutyCycleNew)}");
+                WriteWholeLine("");
+                WriteWholeLine($"Refresh elapsed:   {state.RefreshElapsed}");
 
                 Console.SetCursorPosition(cursorTop, cursorLeft);
             }
+        }
+
+        private string FormatDutyCycle(string currentDutyCycle, string newDutyCycle)
+        {
+            if (currentDutyCycle == newDutyCycle)
+            {
+                return currentDutyCycle;
+            }
+
+            return $"{currentDutyCycle} -> {newDutyCycle}";
+        }
+
+        private void WriteWholeLine(string text)
+        {
+            Console.WriteLine(text.PadRight(Console.BufferWidth));
         }
 
         public void AddArduinoLogEntry(string logEntry)
@@ -47,5 +74,37 @@ namespace gputempmon
             ui.Initialize();
             return ui;
         }
+
+        internal void RefreshFanState(IFanState fanState)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+        class FormattedUiState
+        {
+        public static readonly FormattedUiState NotAvailable = new FormattedUiState
+        {
+            Temperature = "N/A",
+            FanDutyCycle = "N/A",
+            FanDutyCycleNew = "N/A",
+            FanRpm = "N/A",
+            RefreshElapsed = "N/A"
+        };
+
+        public string Temperature { get; internal set; }
+            public string FanRpm { get; internal set; }
+            public string FanDutyCycle { get; internal set; }
+            public string RefreshElapsed { get; internal set; }
+        public string FanDutyCycleNew { get; internal set; }
+    }
+
+    public class UiState
+    {
+        public double Temperature { get; internal set; }
+        public int FanRpm { get; internal set; }
+        public int FanDutyCycle { get; internal set; }
+        public TimeSpan RefreshElapsed { get; internal set; }
+        public int FanDutyCycleNew { get; internal set; }
     }
 }

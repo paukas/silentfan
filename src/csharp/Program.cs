@@ -15,7 +15,7 @@ namespace gputempmon
                         new InstallerUi().Run();
                         break;
                     case "--run":
-                        new TempMonitorUi().Run();
+                        new MonitorUi().Run();
                         break;
                     default:
                         Console.WriteLine($"Unrecognized argument: {args[0]}");

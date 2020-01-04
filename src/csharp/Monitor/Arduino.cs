@@ -13,9 +13,9 @@ namespace gputempmon
             _serialPort = serialPort;
         }
 
-        public void UpdateTemperature(double temperature)
+        public void UpdateDutyCycle(int dutyCycle)
         {
-            _serialPort.WriteLine($"{temperature:0.##}");
+            _serialPort.WriteLine($"fan[0].pwm={dutyCycle}");
         }
 
         public string ReadLogLine()

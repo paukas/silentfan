@@ -35,7 +35,7 @@ namespace gputempmon
 
         private void RunTempMonitor()
         {
-            new TempMonitorUi().Run();
+            new MonitorUi().Run();
         }
     }
 }
