@@ -1,149 +1,121 @@
-#define PIN_CTL A5
 #define SERIAL_TIMEOUT 500
-#define MAX_NOSIGNALCNT 5
-#define SILENTMODE_SWITCHBACK_DELAY 10000
 
-#define TEMP_LOW 43
-#define TEMP_HIGH 45
-#define TEMP_MINPOSSIBLE 25
-#define TEMP_MAXPOSSIBLE 80
-
+#define PIN_RPM PD2 // input pullup (or pulldown?)
 
 void setup() {
   Serial.begin(9600);
   Serial.setTimeout(SERIAL_TIMEOUT);
 
-  pinMode(PIN_CTL, OUTPUT);
+  pinMode(PIN_RPM, INPUT_PULLUP);
 
   Serial.println("Starting SilentFAN");
+
+  attachInterrupt(digitalPinToInterrupt(PIN_RPM), onRevPinInterrupt, CHANGE);
 }
 
-bool _silentModeEnabeld = false;
-unsigned long _silentModeSwitchTime = 0;
-short _noSignalCnt = 0;
-bool _ledState = HIGH;
+struct RpmSample_t {
+  const int CHANGES_PER_REV = 4;
+  const int MILLISECONDS_PER_MINUTE = 60000;
 
-bool switchDelayInEffect(unsigned long now) {
-  if (_silentModeEnabeld)
-    return false;
-  else
-    return !switchDelayExpired(now, SILENTMODE_SWITCHBACK_DELAY);
+  int changeCount = 0;
+  unsigned long sampleStartTick = 0;
+  unsigned long sampleEndTick = 0;
+
+  int toRpm() {
+    unsigned long sampleLengthMillis = sampleEndTick - sampleStartTick;
+    float revCount = (float) changeCount / (float) CHANGES_PER_REV;
+    return (int) ((float) MILLISECONDS_PER_MINUTE / (float) sampleLengthMillis * revCount);
+  }
+} MeasuredSample_t;
+
+typedef struct {
+  int changeCount = 0;
+  unsigned long sampleStartTick = 0;
+
+  RpmSample_t sample() {
+    RpmSample_t sample = RpmSample_t();
+    sample.changeCount = changeCount;
+    sample.sampleStartTick = sampleStartTick;
+    sample.sampleEndTick = millis();
+
+    changeCount = 0;
+    sampleStartTick = sample.sampleEndTick;
+    return sample;
+  }
+} CurrentRpmSample_t;
+
+static const unsigned int MILLISECONDS_PER_MINUTE = 60000;
+typedef struct RevBuffer_t {
+  static const int BUFFER_SIZE = 10;
+  static const int TIMESTAMPS_PER_REV = 4;
+
+  unsigned long timestamps[BUFFER_SIZE];
+  unsigned int timestampPos = 0;
+
+  void tick() {
+    timestampPos++;
+    unsigned int pos = timestampPos % BUFFER_SIZE;
+    timestamps[pos] = millis();
+  }
+
+  int toRpm() {
+    int currentPos = timestampPos % BUFFER_SIZE;
+    int previousPos = (timestampPos - 1) % BUFFER_SIZE;
+
+    unsigned long timestampDiff = timestamps[currentPos] - timestamps[previousPos];
+    return (int) (MILLISECONDS_PER_MINUTE / (float) timestampDiff / (float) TIMESTAMPS_PER_REV);
+  }
+
+  int toRpmAvg() {
+    static const int SAMPLE_SIZE = BUFFER_SIZE - 1;
+
+    unsigned long diffSum = 0;
+    for (int i = 0; i < SAMPLE_SIZE; i++) {
+      int currentPos = (timestampPos - i) % BUFFER_SIZE;
+      int previousPos = (timestampPos - i - 1) % BUFFER_SIZE;
+
+      unsigned long timestampDiff = timestamps[currentPos] - timestamps[previousPos];
+      diffSum += timestampDiff;
+    }
+
+    float averageDiff = diffSum / (float) SAMPLE_SIZE;
+    static const float BASE = MILLISECONDS_PER_MINUTE / (float) TIMESTAMPS_PER_REV;
+    return (int) (BASE / (float) averageDiff);
+  }
+
+  void dump() {
+    for (int i = 0; i < BUFFER_SIZE; i++) {
+      Serial.print(timestamps[i]);
+      Serial.print(";");
+    }
+
+    Serial.print("[");
+    Serial.print(timestampPos);
+    Serial.print("]");
+  }
+} RevBuffer_t;
+
+//CurrentRpmSample_t CurrentSample;
+
+RevBuffer_t revBuffer;
+int readRpmSample() {
+  return revBuffer.toRpm();
+  //return CurrentSample.sample().toRpm();
 }
 
-bool switchDelayExpired(unsigned long now, unsigned long delay) {
-  const unsigned long ULONG_MAX = ((unsigned long)0) - 1;
-
-  unsigned long timeDiff = 0;
-  if (now < _silentModeSwitchTime) {
-    timeDiff = ULONG_MAX - _silentModeSwitchTime + now;
-  } else {
-    timeDiff = now - _silentModeSwitchTime;
-  }
-
-  if (timeDiff > delay) {
-    return true;
-  }
-
-  return false;
+void onRevPinInterrupt() {
+  revBuffer.tick();
+  //CurrentSample.changeCount++;
 }
 
 void loop() {
-  unsigned long now = millis();
-  String temperatureString = Serial.readStringUntil('\n');
-  if (switchDelayInEffect(now)) {
-    Serial.println("Switch delay in effect");
-    return;
-  }
-
-  bool silentModeEnabled = _silentModeEnabeld;
-  short temperature = 0;
-  if (parseTemperatureString(temperatureString, &temperature)) {
-    if (temperature < TEMP_HIGH) {
-      silentModeEnabled = true;
-    } else if (temperature > TEMP_LOW) {
-      silentModeEnabled = false;
-    } else if (temperature < TEMP_MINPOSSIBLE || temperature > TEMP_MAXPOSSIBLE) {
-      silentModeEnabled = false;
-    }
-
-    _noSignalCnt = 0;
-  } else {
-    Serial.print("Failed to parse serial input: ");
-    Serial.print(temperatureString);
-    Serial.println();
-
-    if (_noSignalCnt < MAX_NOSIGNALCNT)
-    {
-      _noSignalCnt++;
-    }
-  }
-
-  if (_noSignalCnt > 0) {
-    toggleBuiltInLed();
-  } else {
-    turnOffBuildInLed();
-  }
-
-  if (_noSignalCnt >= MAX_NOSIGNALCNT) {
-    silentModeEnabled = false;
-  }
-
-  if (_silentModeEnabeld != silentModeEnabled) {
-    if (silentModeEnabled) {
-      digitalWrite(PIN_CTL, HIGH);
-    } else {
-      digitalWrite(PIN_CTL, LOW);
-    }
-
-    _silentModeEnabeld = silentModeEnabled;
-    _silentModeSwitchTime = now;
-    Serial.print("Silent mode: ");
-    Serial.print(_silentModeEnabeld);
-    Serial.println();
-  }
-}
-
-void toggleBuiltInLed() {
-  if (_ledState == LOW)
-    _ledState = HIGH;
-  else
-    _ledState = LOW;
-
-  digitalWrite(LED_BUILTIN, _ledState);
-}
-
-void turnOffBuildInLed() {
-  _ledState = LOW;
-  digitalWrite(LED_BUILTIN, _ledState);
-}
-
-bool parseTemperatureString(String temperatureString, short* temperature) {
-  if (temperatureString == NULL)
-    return false;
-  if (temperatureString.length() != 2)
-    return false;
-
-  char char0 = temperatureString[0];
-  char char1 = temperatureString[1];
-//  char char3 = temperatureString[2];
-
-  // if (char3 != '\n')
-  //   return false;
-
-  short num0 = 0;
-  short num1 = 0;
-  if (parseNumber(char0, &num0) && parseNumber(char1, &num1)) {
-    *temperature = (short) (num0 * 10 + num1);
-    return true;
-  }
-
-  return false;
-}
-
-bool parseNumber(char character, short* number) {
-  if (character >= 48 && character <= 57) {
-    *number = character - 48;
-    return true;
-  }
-  return false;
+  int rpm = revBuffer.toRpm();
+  int rpmAvg = revBuffer.toRpmAvg();
+  Serial.print(rpm);
+  Serial.print(",");
+  Serial.print(rpmAvg);
+  if (rpmAvg == 0)
+    revBuffer.dump();
+  Serial.println();
+  delay(200);
 }
