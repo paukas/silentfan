@@ -1,6 +1,8 @@
 #ifndef RPMMONITOR_CPP
 #define RPMMONITOR_CPP
 
+#include "IRpmMonitor.h"
+
 typedef struct RpmSample_t {
   static const unsigned int MILLISECONDS_PER_MINUTE = 60000;
   const int CHANGES_PER_REV = 4;
@@ -28,19 +30,26 @@ typedef struct RpmSample_t {
   }
 } RpmSample_t;
 
-typedef struct {
-  RpmSample_t sample;
+typedef class RpmMontitor : public IRpmMonitor {
+  private:
+    RpmSample_t _sample;
 
-  void tick() {
-    sample.tick();
-  }
+  public:
+    unsigned int readRpm() {
+      RpmSample_t prevSample = RpmSample_t(_sample);
+      _sample.reset();
 
-  int readRpm() {
-    RpmSample_t prevSample = RpmSample_t(sample);
-    sample.reset();
+      return prevSample.toRpm(_sample.startMillis);
+    }
 
-    return prevSample.toRpm(sample.startMillis);
-  }
-} RpmMonitor_t;
+    void tick() {
+      _sample.tick();
+    }
+
+    static void setup(int pinNumber, void (*onInterrupt)()) {
+      pinMode(pinNumber, INPUT_PULLUP);
+      attachInterrupt(digitalPinToInterrupt(pinNumber), onInterrupt, CHANGE);
+    }
+} RpmMonitor;
 
 #endif
