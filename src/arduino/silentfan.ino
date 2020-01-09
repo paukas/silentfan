@@ -11,7 +11,7 @@
 #define CONNECTION_TIMEOUT 2000   // how long till fans reset to default pwm
 
 #define FAN1_RPM_PIN PD2
-#define FAN2_RPM_PIN PD5
+#define FAN2_RPM_PIN PB4
 #define FAN1_DEFAULT_PWM 80
 #define FAN2_DEFAULT_PWM 80
 
@@ -71,7 +71,13 @@ Fan fans[FAN_COUNT] = {
   Fan(pwmOnTimer2, rpmMonitor2, 1)
 };
 
+ISR(PCINT0_vect)
+{
+  onRpmMonitor2Tick();
+}
+
 void setup() {
+
   Serial.begin(9600);
   Serial.setTimeout(SERIAL_TIMEOUT);
   Serial.println("Starting SilentFAN");
@@ -80,7 +86,20 @@ void setup() {
   pwmOnTimer2.setup();
 
   RpmMonitor::setup(FAN1_RPM_PIN, onRpmMonitor1Tick);
-  RpmMonitor::setup(FAN2_RPM_PIN, onRpmMonitor2Tick);
+  //RpmMonitor::setup(FAN2_RPM_PIN, onRpmMonitor2Tick);
+  
+  // HACKY SETUP FOR FAN2_RPM_PIN
+  cli();
+  // pin change interrupt hack
+  // resource: https://thewanderingengineer.com/2014/08/11/arduino-pin-change-interrupts/
+  // PCICR |= 0b00000001;    // turn on port b
+  // PCMSK0 |= 0b00001000;   // turn on on PCINT4
+  PCICR = bit(PCIE0);   // enable interrupts on Port B
+  PCMSK0 = bit(PCINT4); // enable interrupts on PB4
+  PORTB = bit(PORTB4);  // enable internal pullup resistor on PB4
+  PCIFR = bit(PCIF0);   // clear existing interrupts in Port B
+  sei();
+  // --
 
   // pinMode(PIN_RPM, INPUT_PULLUP);
   // attachInterrupt(digitalPinToInterrupt(PIN_RPM), onRevPinInterrupt, CHANGE);
