@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 
 namespace gputempmon
 {
@@ -19,10 +20,14 @@ namespace gputempmon
             Refresh(new FormattedUiState
             {
                 Temperature = state.Temperature.ToString(),
-                FanRpm = state.FanRpm.ToString(),
-                FanDutyCycle = state.FanDutyCycle.ToString(),
-                FanDutyCycleNew = state.FanDutyCycleNew.ToString(),
                 RefreshElapsed = state.RefreshElapsed.TotalMilliseconds.ToString("0.##"),
+                FanStates = state.FanStates.Select(x => new FormattedUiFanState
+                {
+                    FanId = x.FanId,
+                    Rpm = x.Rpm.ToString(),
+                    CurrentDutyCycle = x.CurrentDutyCycle.ToString(),
+                    NewDutyCycle = x.NewDutyCycle.ToString()
+                }).ToArray()
             });
         }
 
@@ -36,8 +41,16 @@ namespace gputempmon
                 Console.SetCursorPosition(0, 0);
 
                 WriteWholeLine($"Temperature:       {state.Temperature}");
-                WriteWholeLine($"RPM:               {state.FanRpm}");
-                WriteWholeLine($"Duty cycle:        {FormatDutyCycle(state.FanDutyCycle, state.FanDutyCycleNew)}");
+                WriteWholeLine("");
+
+                foreach (FormattedUiFanState fanState in state.FanStates)
+                {
+                    WriteWholeLine($"Fan:        {fanState.FanId}");
+                    WriteWholeLine($"RPM:        {fanState.Rpm}");
+                    WriteWholeLine($"Duty cycle: {FormatDutyCycle(fanState.CurrentDutyCycle, fanState.NewDutyCycle)}");
+                    WriteWholeLine("");
+                }
+
                 WriteWholeLine("");
                 WriteWholeLine($"Refresh elapsed:   {state.RefreshElapsed}");
 
@@ -81,30 +94,40 @@ namespace gputempmon
         }
     }
 
-        class FormattedUiState
-        {
+    class FormattedUiState
+    {
         public static readonly FormattedUiState NotAvailable = new FormattedUiState
         {
             Temperature = "N/A",
-            FanDutyCycle = "N/A",
-            FanDutyCycleNew = "N/A",
-            FanRpm = "N/A",
-            RefreshElapsed = "N/A"
+            RefreshElapsed = "N/A",
+            FanStates = new FormattedUiFanState[0]
         };
 
         public string Temperature { get; internal set; }
-            public string FanRpm { get; internal set; }
-            public string FanDutyCycle { get; internal set; }
-            public string RefreshElapsed { get; internal set; }
-        public string FanDutyCycleNew { get; internal set; }
+        public string RefreshElapsed { get; internal set; }
+        public FormattedUiFanState[] FanStates { get; internal set; }
+    }
+
+    class FormattedUiFanState
+    {
+        public string FanId { get; set; }
+        public string Rpm { get; set; }
+        public string CurrentDutyCycle { get; set; }
+        public string NewDutyCycle { get; set; }
     }
 
     public class UiState
     {
         public double Temperature { get; internal set; }
-        public int FanRpm { get; internal set; }
-        public int FanDutyCycle { get; internal set; }
         public TimeSpan RefreshElapsed { get; internal set; }
-        public int FanDutyCycleNew { get; internal set; }
+        public UiFanState[] FanStates { get; internal set; }
+    }
+
+    public class UiFanState
+    {
+        public string FanId { get; set; }
+        public int Rpm { get; set; }
+        public int CurrentDutyCycle { get; set; }
+        public int NewDutyCycle { get; set; }
     }
 }

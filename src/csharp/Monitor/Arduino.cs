@@ -13,9 +13,9 @@ namespace gputempmon
             _serialPort = serialPort;
         }
 
-        public void UpdateDutyCycle(int dutyCycle)
+        public void UpdateDutyCycle(string fanId, int dutyCycle)
         {
-            _serialPort.WriteLine($"fan[0].pwm={dutyCycle}");
+            _serialPort.WriteLine($"fan[{fanId}].pwm={dutyCycle}");
         }
 
         public string ReadLogLine()

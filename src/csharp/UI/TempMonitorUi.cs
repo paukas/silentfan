@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
@@ -28,18 +29,24 @@ namespace gputempmon
     {
         int DutyCycle { get; }
         int Rpm { get; }
+        string FanId { get; }
     }
 
     class FanState : IFanState
     {
+        public string FanId { get; set; }
         public int DutyCycle { get; set; }
-
         public int Rpm { get; set; }
+
+        public FanState(string fanId)
+        {
+            FanId = fanId;
+        }
     }
 
     class FanMonitorService
     {
-        private readonly FanState _fanState = new FanState();
+        private readonly Dictionary<string, FanState> _fanStates = new Dictionary<string, FanState>();
 
         private readonly Arduino _arduino;
 
@@ -57,20 +64,59 @@ namespace gputempmon
         {
             while (true)
             {
-                const string RPM_PREFIX = "fan[0].rpm=";
-                const string PWM_PREFIX = "fan[0].pwm=";
-
                 string logLine = _arduino.ReadLogLine();
-                if (logLine.StartsWith(RPM_PREFIX))
-                    _fanState.Rpm = int.Parse(logLine.Substring(RPM_PREFIX.Length));
-                else if (logLine.StartsWith(PWM_PREFIX))
-                    _fanState.DutyCycle = int.Parse(logLine.Substring(PWM_PREFIX.Length));
+                ProcessLine(logLine);
             }
         }
 
-        public IFanState GetFanState()
+        private void ProcessLine(string line)
         {
-            return _fanState;
+            const string fanPrefix = "fan[";
+            if (!line.StartsWith(fanPrefix))
+                return;
+
+            var endOfFanId = line.IndexOf("]", fanPrefix.Length);
+            if (endOfFanId == -1)
+                return;
+
+            int fanIdLength = endOfFanId - fanPrefix.Length;
+            string fanId= line.Substring(fanPrefix.Length, fanIdLength);
+
+            string rpmKey = $"fan[{fanId}].rpm=";
+            string pwmKey = $"fan[{fanId}].pwm=";
+            if (line.StartsWith(rpmKey))
+            {
+                int rpm = int.Parse(line.Substring(rpmKey.Length));
+                SetRpm(fanId, rpm);
+            }
+            else if (line.StartsWith(pwmKey))
+            {
+                int pwm = int.Parse(line.Substring(pwmKey.Length));
+                SetPwm(fanId, pwm);
+            }
+        }
+
+        private void SetPwm(string fanId, int pwm)
+        {
+            EnsureFanStateInList(fanId);
+            _fanStates[fanId].DutyCycle = pwm;
+        }
+
+        private void SetRpm(string fanId, int rpm)
+        {
+            EnsureFanStateInList(fanId);
+            _fanStates[fanId].Rpm = rpm;
+        }
+
+        private void EnsureFanStateInList(string fanId)
+        {
+            if (!_fanStates.ContainsKey(fanId))
+                _fanStates.Add(fanId, new FanState(fanId));
+        }
+
+        public IFanState[] GetFanStates()
+        {
+            return _fanStates.Values.ToArray();
         }
     }
 
@@ -94,19 +140,27 @@ namespace gputempmon
                     double temperature = graphicsCard.ReadTemperature();
                     stopwatch.Stop();
 
-                    IFanState fanState = fanMonitorService.GetFanState();
-                    int dutyCycle = dutyCycleCalculator.CalculateDutyCycle(temperature);
+                    IFanState[] fanStates = fanMonitorService.GetFanStates();
+
+                    UiFanState[] uiFanStates = fanStates.Select(x => new UiFanState
+                    {
+                        FanId = x.FanId,
+                        Rpm = x.Rpm,
+                        CurrentDutyCycle = x.DutyCycle,
+                        NewDutyCycle = dutyCycleCalculator.CalculateDutyCycle(temperature)
+                    }).ToArray();
 
                     ui.Refresh(new UiState
                     {
                         Temperature = temperature,
-                        FanRpm = fanState.Rpm,
-                        FanDutyCycle = fanState.DutyCycle,
-                        FanDutyCycleNew = dutyCycle,
-                        RefreshElapsed = stopwatch.Elapsed
+                        RefreshElapsed = stopwatch.Elapsed,
+                        FanStates = uiFanStates
                     });
 
-                    arduino.UpdateDutyCycle(dutyCycle);
+                    foreach (UiFanState uiFanState in uiFanStates)
+                    {
+                        arduino.UpdateDutyCycle(uiFanState.FanId, uiFanState.NewDutyCycle);
+                    }
 
                     Task.Delay(350).Wait();
                 }
