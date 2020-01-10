@@ -1,11 +1,11 @@
 #ifndef IPWMCONTROLLER_H
 #define IPWMCONTROLLER_H
 
-typedef class IPwmController {
+class IPwmController {
   public:
-    virtual void changeDutyCycle(unsigned int dutyCycle);
-    virtual unsigned int getDutyCycle();
-    virtual void resetDutyCycle();
-} IPwmController;
+    virtual void changeDutyCycle(unsigned int dutyCycle) = 0;
+    virtual unsigned int getDutyCycle() = 0;
+    virtual void resetDutyCycle() = 0;
+};
 
 #endif

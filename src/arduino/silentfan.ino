@@ -4,8 +4,7 @@
 #include "structs/RpmMonitor.cpp"
 
 #include "structs/IPwmController.h"
-#include "structs/PwmControllerOnTimer1.cpp"
-#include "structs/PwmControllerOnTimer2.cpp"
+#include "structs/PwmController.cpp"
 
 #define SERIAL_TIMEOUT 500        // how long till serial times out
 #define CONNECTION_TIMEOUT 2000   // how long till fans reset to default pwm
@@ -15,6 +14,11 @@
 #define FAN1_DEFAULT_PWM 80
 #define FAN2_DEFAULT_PWM 80
 
+using Fan1PwmController = PwmController<80, 9>;
+using Fan2PwmController = PwmController<80, 10>;
+
+Fan1PwmController pwmOnTimer1 = Fan1PwmController(FAN1_DEFAULT_PWM);
+Fan2PwmController pwmOnTimer2 = Fan2PwmController(FAN2_DEFAULT_PWM);
 
 class Fan {
   private:
@@ -58,8 +62,6 @@ class Fan {
     }
 };
 
-PwmControllerOnTimer1 pwmOnTimer1 = PwmControllerOnTimer1(FAN1_DEFAULT_PWM);
-PwmControllerOnTimer2 pwmOnTimer2 = PwmControllerOnTimer2(FAN2_DEFAULT_PWM);
 RpmMonitor rpmMonitor1 = RpmMonitor();
 void onRpmMonitor1Tick() { rpmMonitor1.tick(); };
 RpmMonitor rpmMonitor2 = RpmMonitor();
@@ -71,9 +73,19 @@ Fan fans[FAN_COUNT] = {
   Fan(pwmOnTimer2, rpmMonitor2, 1)
 };
 
+uint8_t PINB_STATE = 0;
 ISR(PCINT0_vect)
 {
-  onRpmMonitor2Tick();
+  uint8_t pinb_state = PINB;
+  uint8_t changes = pinb_state ^ PINB_STATE;
+  if (changes & bit(PORTB3)) {
+    onRpmMonitor1Tick();
+  }
+  if (changes & bit(PORTB4)) {
+    onRpmMonitor2Tick();
+  }
+
+  PINB_STATE = pinb_state;
 }
 
 void setup() {
@@ -82,11 +94,14 @@ void setup() {
   Serial.setTimeout(SERIAL_TIMEOUT);
   Serial.println("Starting SilentFAN");
 
-  pwmOnTimer1.setup();
-  pwmOnTimer2.setup();
+  pinMode(9, OUTPUT);
+  pinMode(10, OUTPUT);
+  TCCR1A = _BV(COM1A1) | _BV(COM1B1) | _BV(WGM11);
+  TCCR1B = _BV(WGM12) | _BV(WGM13) | _BV(CS11);
+  ICR1 = 80;
 
-  RpmMonitor::setup(FAN1_RPM_PIN, onRpmMonitor1Tick);
-  //RpmMonitor::setup(FAN2_RPM_PIN, onRpmMonitor2Tick);
+  pwmOnTimer1.changeDutyCycle(10);
+  pwmOnTimer2.changeDutyCycle(10);
   
   // HACKY SETUP FOR FAN2_RPM_PIN
   cli();
@@ -95,8 +110,8 @@ void setup() {
   // PCICR |= 0b00000001;    // turn on port b
   // PCMSK0 |= 0b00001000;   // turn on on PCINT4
   PCICR = bit(PCIE0);   // enable interrupts on Port B
-  PCMSK0 = bit(PCINT4); // enable interrupts on PB4
-  PORTB = bit(PORTB4);  // enable internal pullup resistor on PB4
+  PCMSK0 = bit(PCINT3) | bit(PCINT4); // enable interrupts on PB3 & PB4
+  PORTB = bit(PORTB3) | bit(PORTB4);  // enable internal pullup resistor on PB3 & PB4
   PCIFR = bit(PCIF0);   // clear existing interrupts in Port B
   sei();
   // --
@@ -131,6 +146,8 @@ bool tryHandleCommand(String command) {
       }
     }
   }
+
+  return false;
 }
 
 void resetDutyCyclesOnAllFans() {
@@ -144,11 +161,18 @@ void printToSerial(const String& text) {
 }
 
 void loop() {
-  unsigned int lastSuccessfulHandle = millis();
+  unsigned long lastSuccessfulHandle = millis();
+  bool connectionLost = false;
   while (true) {
     String command = Serial.readStringUntil('\n');
     bool handled = tryHandleCommand(command);
-    bool connectionLost = !handled && (millis() - lastSuccessfulHandle) > CONNECTION_TIMEOUT;
+    unsigned long now = millis();
+    if (handled) {
+      lastSuccessfulHandle = now;
+      connectionLost = false;
+    } else if (now - lastSuccessfulHandle > CONNECTION_TIMEOUT) {
+      connectionLost = true;
+    }
 
     for (int i = 0; i < FAN_COUNT; i++) {
       if (connectionLost)
