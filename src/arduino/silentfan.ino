@@ -6,19 +6,19 @@
 #include "structs/IPwmController.h"
 #include "structs/PwmController.cpp"
 
+static const int RPM1_PIN = 11; // do not change. configured using registers
+static const int RPM2_PIN = 12; // do not change. configured using registers
+
+static const int PWM1_PIN = 9;  // do not change. configured using registers
+static const int PWM2_PIN = 10; // do not change. configured using registers
+static const int PWM_TOP = 80;  // top value for PWM counter (ICR1 register)
+
 #define SERIAL_TIMEOUT 500        // how long till serial times out
 #define CONNECTION_TIMEOUT 2000   // how long till fans reset to default pwm
 
-#define FAN1_RPM_PIN PD2
-#define FAN2_RPM_PIN PB4
 #define FAN1_DEFAULT_PWM 80
 #define FAN2_DEFAULT_PWM 80
 
-using Fan1PwmController = PwmController<80, 9>;
-using Fan2PwmController = PwmController<80, 10>;
-
-Fan1PwmController pwmOnTimer1 = Fan1PwmController(FAN1_DEFAULT_PWM);
-Fan2PwmController pwmOnTimer2 = Fan2PwmController(FAN2_DEFAULT_PWM);
 
 class Fan {
   private:
@@ -63,30 +63,18 @@ class Fan {
 };
 
 RpmMonitor rpmMonitor1 = RpmMonitor();
-void onRpmMonitor1Tick() { rpmMonitor1.tick(); };
 RpmMonitor rpmMonitor2 = RpmMonitor();
-void onRpmMonitor2Tick() { rpmMonitor2.tick(); };
+
+using Fan1PwmController = PwmController<PWM_TOP, PWM1_PIN>;
+using Fan2PwmController = PwmController<PWM_TOP, PWM2_PIN>;
+Fan1PwmController pwmController1 = Fan1PwmController(FAN1_DEFAULT_PWM);
+Fan2PwmController pwmController2 = Fan2PwmController(FAN2_DEFAULT_PWM);
 
 static const int FAN_COUNT = 2;
 Fan fans[FAN_COUNT] = {
-  Fan(pwmOnTimer1, rpmMonitor1, 0),
-  Fan(pwmOnTimer2, rpmMonitor2, 1)
+  Fan(pwmController1, rpmMonitor1, 0),
+  Fan(pwmController2, rpmMonitor2, 1)
 };
-
-uint8_t PINB_STATE = 0;
-ISR(PCINT0_vect)
-{
-  uint8_t pinb_state = PINB;
-  uint8_t changes = pinb_state ^ PINB_STATE;
-  if (changes & bit(PORTB3)) {
-    onRpmMonitor1Tick();
-  }
-  if (changes & bit(PORTB4)) {
-    onRpmMonitor2Tick();
-  }
-
-  PINB_STATE = pinb_state;
-}
 
 void setup() {
 
@@ -94,14 +82,11 @@ void setup() {
   Serial.setTimeout(SERIAL_TIMEOUT);
   Serial.println("Starting SilentFAN");
 
-  pinMode(9, OUTPUT);
-  pinMode(10, OUTPUT);
+  pinMode(PWM1_PIN, OUTPUT);
+  pinMode(PWM2_PIN, OUTPUT);
   TCCR1A = _BV(COM1A1) | _BV(COM1B1) | _BV(WGM11);
   TCCR1B = _BV(WGM12) | _BV(WGM13) | _BV(CS11);
-  ICR1 = 80;
-
-  pwmOnTimer1.changeDutyCycle(10);
-  pwmOnTimer2.changeDutyCycle(10);
+  ICR1 = PWM_TOP;
   
   // HACKY SETUP FOR FAN2_RPM_PIN
   cli();
@@ -116,25 +101,25 @@ void setup() {
   sei();
   // --
 
-  // pinMode(PIN_RPM, INPUT_PULLUP);
-  // attachInterrupt(digitalPinToInterrupt(PIN_RPM), onRevPinInterrupt, CHANGE);
-
-
-  // pinMode(PIN_PWM, OUTPUT);
-  // TCCR2A = _BV(COM2A1) | _BV(COM2B1) | _BV(WGM21) | _BV(WGM20);
-  // TCCR2B = _BV(WGM22) | _BV(CS21);
-  // OCR2A = 80; // PD3
-  //OCR2B = 80;// ?? // pin 3 / PD3?
-
-  // PwmDriver.initialize(PD3, OCR2A);
-  // PwmDriver.defaultDutyCycle = 80;
-  // PwmDriver.resetDutyCycle();
-
-  //printVar("fan[0].pwm.mult=", PwmDriver.multiplier);
-
   for (int i = 0; i < FAN_COUNT; i++) {
+    fans[i].resetDutyCycle();
     fans[i].printState(printToSerial);
   }
+}
+
+uint8_t PINB_STATE = 0;
+ISR(PCINT0_vect)
+{
+  uint8_t pinb_state = PINB;
+  uint8_t changes = pinb_state ^ PINB_STATE;
+  if (changes & bit(PORTB3)) {
+    rpmMonitor1.tick();
+  }
+  if (changes & bit(PORTB4)) {
+    rpmMonitor2.tick();
+  }
+
+  PINB_STATE = pinb_state;
 }
 
 bool tryHandleCommand(String command) {
