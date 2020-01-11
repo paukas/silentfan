@@ -70,7 +70,7 @@ namespace gputempmon
 
         private void WriteWholeLine(string text)
         {
-            Console.WriteLine(text.PadRight(Console.BufferWidth));
+            Console.WriteLine(text.PadRight(Console.BufferWidth - 1));
         }
 
         public void AddArduinoLogEntry(string logEntry)
