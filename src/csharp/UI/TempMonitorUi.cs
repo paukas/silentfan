@@ -6,7 +6,62 @@ using System.Threading.Tasks;
 
 namespace gputempmon
 {
-    class DutyCycleCalculator
+    interface IDutyCycleCalculator
+    {
+        int CalculateDutyCycle(double temperature);
+    }
+
+    class SmoothDutyCycleCalculator : IDutyCycleCalculator
+    {
+        private Dictionary<int, int> _curve = new Dictionary<int, int>();
+        private KeyValuePair<int, int> _min;
+        private KeyValuePair<int, int> _max;
+
+        public SmoothDutyCycleCalculator()
+        {
+            _curve = _curve
+                .Union(Linear(40, 59, 13, 59))
+                .Union(Linear(60, 69, 60, 75))
+                .Union(Linear(70, 79, 76, 100))
+                .ToDictionary(x => x.Key, x => x.Value);
+
+            int minTemp = _curve.Keys.Min();
+            int maxTemp = _curve.Keys.Max();
+
+            _min = new KeyValuePair<int, int>(minTemp, _curve[minTemp]);
+            _max = new KeyValuePair<int, int>(maxTemp, _curve[maxTemp]);
+        }
+
+        private IEnumerable<KeyValuePair<int, int>> Linear(int tFrom, int tTo, int dcFrom, int dcTo)
+        {
+            int deltaT = tTo - tFrom;
+            int deltaDc = dcTo - dcFrom;
+
+            double multiplier = (double)deltaDc / (double)deltaT;
+            for (int t = tFrom; t <= tTo; t++)
+                yield return new KeyValuePair<int, int>(t, dcFrom + (int)((t - tFrom) * multiplier));
+        }
+
+        private IEnumerable<KeyValuePair<int, int>> Static(int tFrom, int tTo, int dc)
+        {
+            for (int t = tFrom; t <= tTo; t++)
+                yield return new KeyValuePair<int, int>(t, dc);
+        }
+
+        public int CalculateDutyCycle(double temperature)
+        {
+            if (_curve.TryGetValue((int)temperature, out int dutyCycle))
+                return dutyCycle;
+            else if (temperature < _min.Key)
+                return _min.Value;
+            else if (temperature > _max.Key)
+                return _max.Value;
+            else
+                return 100;
+        }
+    }
+
+    class RoughDutyCycleCalculator : IDutyCycleCalculator
     {
         public int CalculateDutyCycle(double temperature)
         {
@@ -126,7 +181,7 @@ namespace gputempmon
         {
             ArduinoComPort arduinoComPort = Arduino.Detect().Single();
             ConsoleUi ui = ConsoleUi.Create();
-            DutyCycleCalculator dutyCycleCalculator = new DutyCycleCalculator();
+            IDutyCycleCalculator dutyCycleCalculator = new SmoothDutyCycleCalculator();
 
             using (Arduino arduino = arduinoComPort.Connect())
             using (GraphicsCard graphicsCard = GraphicsCard.Open())
@@ -162,7 +217,7 @@ namespace gputempmon
                         arduino.UpdateDutyCycle(uiFanState.FanId, uiFanState.NewDutyCycle);
                     }
 
-                    Task.Delay(350).Wait();
+                    Task.Delay(1000).Wait();
                 }
             }
         }
