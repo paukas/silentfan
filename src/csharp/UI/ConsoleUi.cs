@@ -1,18 +1,94 @@
-﻿using System;
+﻿using gputempmon.UI.Chart;
+using System;
 using System.Linq;
 
 namespace gputempmon
 {
+    class ChartUi
+    {
+        private readonly ChartState _chartState;
+        private readonly ChartPainter _chartPainter;
+        private readonly int _valueCount;
+        private readonly int _lastValueIndex;
+
+        public ChartUi(ChartState chartState)
+        {
+            _chartState = chartState;
+            _chartPainter = new ChartPainter();
+
+            _valueCount = _chartState.Values.Length;
+            _lastValueIndex = _valueCount - 1;
+        }
+
+        public void Update(int value, int curstorTop, int cursorLeft)
+        {
+            int[] newValues = new int[_valueCount];
+            Array.Copy(_chartState.Values, 1, newValues, 0, _valueCount - 1);
+            newValues[_lastValueIndex] = value;
+
+            _chartState.Values = newValues;
+            string str = _chartPainter.PaintToString(_chartState);
+            string[] lines = str.Split(new string[] { Environment.NewLine }, StringSplitOptions.None);
+
+            Console.SetCursorPosition(cursorLeft, curstorTop);
+            for (int i = 0; i < lines.Length; i++)
+            {
+                Console.SetCursorPosition(cursorLeft, curstorTop + i);
+                Console.Write(lines[i]);
+            }
+        }
+    }
+
     class ConsoleUi
     {
         private readonly object _consoleLock = new object();
+        private readonly ChartUi _temperatureChart;
+        private readonly ChartUi _fan1Rpm;
+        private readonly ChartUi _fan2Rpm;
+        private int _windowWidth;
+        private int _windowHeight;
+
+        public ConsoleUi()
+        {
+            _temperatureChart = new ChartUi(new ChartState
+            {
+                Values = new int[55],
+                Guides = new int[] { 0, 50, 100 },
+                YMax = 100,
+                YMin = 0,
+                Step = 10
+            });
+            _fan1Rpm = new ChartUi(new ChartState
+            {
+                Values = new int[53],
+                Guides = new int[] { 0, 1000, 2000 },
+                YMax = 2000,
+                YMin = 0,
+                Step = 200
+            });
+            _fan2Rpm = new ChartUi(new ChartState
+            {
+                Values = new int[53],
+                Guides = new int[] { 0, 1000, 2000 },
+                YMax = 2000,
+                YMin = 0,
+                Step = 200
+            });
+        }
 
         public void Initialize()
         {
             Console.Clear();
             Console.CursorVisible = false;
 
+            UpdateWindowSize();
             Refresh(FormattedUiState.NotAvailable);
+        }
+
+        private void UpdateWindowSize()
+        {
+            _windowWidth = Console.WindowWidth;
+            _windowHeight = Console.WindowHeight;
         }
 
         public void Refresh(UiState state)
@@ -35,6 +111,12 @@ namespace gputempmon
         {
             lock (_consoleLock)
             {
+                if (WindowSizeChanged())
+                {
+                    Console.Clear();
+                    UpdateWindowSize();
+                }
+
                 int cursorTop = Console.CursorTop;
                 int cursorLeft = Console.CursorLeft;
 
@@ -54,8 +136,25 @@ namespace gputempmon
                 WriteWholeLine("");
                 WriteWholeLine($"Refresh elapsed:   {state.RefreshElapsed}");
 
-                Console.SetCursorPosition(cursorTop, cursorLeft);
+                if (int.TryParse(state.Temperature, out int temperature))
+                {
+                    _temperatureChart.Update(temperature, 0, 60);
+                }
+                if (state.FanStates.Length == 2)
+                {
+                    if (int.TryParse(state.FanStates[0].Rpm, out int fan1Rpm))
+                        _fan1Rpm.Update(fan1Rpm, 15, 0);
+                    if (int.TryParse(state.FanStates[1].Rpm, out int fan2Rpm))
+                        _fan2Rpm.Update(fan2Rpm, 15, 60);
+                }
+
+                Console.SetCursorPosition(cursorLeft, cursorTop);
             }
+        }
+
+        private bool WindowSizeChanged()
+        {
+            return _windowWidth != Console.WindowWidth || _windowHeight != Console.WindowHeight;
         }
 
         private string FormatDutyCycle(string currentDutyCycle, string newDutyCycle)

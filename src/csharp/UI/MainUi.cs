@@ -10,13 +10,19 @@ namespace gputempmon
             {
                 new MenuItem<Action>("> run", RunTempMonitor),
                 new MenuItem<Action>("> install", Install),
-                new MenuItem<Action>("> uninstall", Uninstall)
+                new MenuItem<Action>("> uninstall", Uninstall),
+                new MenuItem<Action>("> run test", Test)
             };
             MenuUi<Action> menuUi = new MenuUi<Action>(menuActions);
             MenuItem<Action> menuItem = menuUi.Choose();
             Action action = menuItem.Item;
             
             action.Invoke();
+        }
+
+        private void Test()
+        {
+            new MonitorUi().RunTest();
         }
 
         private void Uninstall()

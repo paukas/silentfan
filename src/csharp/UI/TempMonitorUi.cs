@@ -11,6 +11,50 @@ namespace gputempmon
         int CalculateDutyCycle(double temperature);
     }
 
+    class Fan2DudyCycleCalculator : IDutyCycleCalculator
+    {
+        private Dictionary<int, int> _curve = new Dictionary<int, int>();
+        private KeyValuePair<int, int> _min;
+        private KeyValuePair<int, int> _max;
+
+        public Fan2DudyCycleCalculator()
+        {
+            _curve = _curve
+                .Union(Linear(40, 59, 13, 20))
+                .Union(Linear(60, 69, 21, 40))
+                .Union(Linear(70, 79, 40, 100))
+                .ToDictionary(x => x.Key, x => x.Value);
+
+            int minTemp = _curve.Keys.Min();
+            int maxTemp = _curve.Keys.Max();
+
+            _min = new KeyValuePair<int, int>(minTemp, _curve[minTemp]);
+            _max = new KeyValuePair<int, int>(maxTemp, _curve[maxTemp]);
+        }
+
+        private IEnumerable<KeyValuePair<int, int>> Linear(int tFrom, int tTo, int dcFrom, int dcTo)
+        {
+            int deltaT = tTo - tFrom;
+            int deltaDc = dcTo - dcFrom;
+
+            double multiplier = (double)deltaDc / (double)deltaT;
+            for (int t = tFrom; t <= tTo; t++)
+                yield return new KeyValuePair<int, int>(t, dcFrom + (int)((t - tFrom) * multiplier));
+        }
+
+        public int CalculateDutyCycle(double temperature)
+        {
+            if (_curve.TryGetValue((int)temperature, out int dutyCycle))
+                return dutyCycle;
+            else if (temperature < _min.Key)
+                return _min.Value;
+            else if (temperature > _max.Key)
+                return _max.Value;
+            else
+                return 100;
+        }
+    }
+
     class SmoothDutyCycleCalculator : IDutyCycleCalculator
     {
         private Dictionary<int, int> _curve = new Dictionary<int, int>();
@@ -40,12 +84,6 @@ namespace gputempmon
             double multiplier = (double)deltaDc / (double)deltaT;
             for (int t = tFrom; t <= tTo; t++)
                 yield return new KeyValuePair<int, int>(t, dcFrom + (int)((t - tFrom) * multiplier));
-        }
-
-        private IEnumerable<KeyValuePair<int, int>> Static(int tFrom, int tTo, int dc)
-        {
-            for (int t = tFrom; t <= tTo; t++)
-                yield return new KeyValuePair<int, int>(t, dc);
         }
 
         public int CalculateDutyCycle(double temperature)
@@ -103,9 +141,9 @@ namespace gputempmon
     {
         private readonly Dictionary<string, FanState> _fanStates = new Dictionary<string, FanState>();
 
-        private readonly Arduino _arduino;
+        private readonly IArduino _arduino;
 
-        public FanMonitorService(Arduino arduino)
+        public FanMonitorService(IArduino arduino)
         {
             _arduino = arduino;
         }
@@ -180,10 +218,21 @@ namespace gputempmon
         public void Run()
         {
             ArduinoComPort arduinoComPort = Arduino.Detect().Single();
-            ConsoleUi ui = ConsoleUi.Create();
-            IDutyCycleCalculator dutyCycleCalculator = new SmoothDutyCycleCalculator();
-
             using (Arduino arduino = arduinoComPort.Connect())
+            {
+                Run(arduino);
+            }
+        }
+
+        private void Run(IArduino arduino)
+        {
+            ConsoleUi ui = ConsoleUi.Create();
+            IDutyCycleCalculator[] calculators = new IDutyCycleCalculator[]
+            {
+                new SmoothDutyCycleCalculator(),
+                new Fan2DudyCycleCalculator()
+            };
+
             using (GraphicsCard graphicsCard = GraphicsCard.Open())
             {
                 FanMonitorService fanMonitorService = new FanMonitorService(arduino);
@@ -197,12 +246,12 @@ namespace gputempmon
 
                     IFanState[] fanStates = fanMonitorService.GetFanStates();
 
-                    UiFanState[] uiFanStates = fanStates.Select(x => new UiFanState
+                    UiFanState[] uiFanStates = fanStates.Select((x, i) => new UiFanState
                     {
                         FanId = x.FanId,
                         Rpm = x.Rpm,
                         CurrentDutyCycle = x.DutyCycle,
-                        NewDutyCycle = dutyCycleCalculator.CalculateDutyCycle(temperature)
+                        NewDutyCycle = calculators[i].CalculateDutyCycle(temperature)
                     }).ToArray();
 
                     ui.Refresh(new UiState
@@ -220,6 +269,11 @@ namespace gputempmon
                     Task.Delay(1000).Wait();
                 }
             }
+        }
+
+        public void RunTest()
+        {
+            Run(new ArduinMock());
         }
     }
 }
